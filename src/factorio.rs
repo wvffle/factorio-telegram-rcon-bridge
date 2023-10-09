@@ -1,12 +1,13 @@
 use crate::config::Config;
-use anyhow::Result;
 use async_log_watcher::LogWatcher;
+use color_eyre::eyre::Result;
 use rcon::Connection;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
+use tracing::info;
 
 pub async fn send(cfg: &Config, message: &str) {
-    println!("[telegram] {}", message);
+    info!("[telegram] {}", message);
 
     let mut conn = <Connection<TcpStream>>::builder()
         .enable_factorio_quirks(true)
@@ -18,7 +19,7 @@ pub async fn send(cfg: &Config, message: &str) {
 }
 
 async fn _cmd(cfg: &Config, message: &str) {
-    println!("[  rcon  ] >> {}", message);
+    info!("[  rcon  ] >> {}", message);
 
     let mut conn = <Connection<TcpStream>>::builder()
         .enable_factorio_quirks(true)
@@ -27,20 +28,20 @@ async fn _cmd(cfg: &Config, message: &str) {
         .expect("Failed to connect to RCON");
 
     let response = conn.cmd(message).await.unwrap();
-    println!("[  rcon  ] << {}", response);
+    info!("[  rcon  ] << {}", response);
 }
 
-pub async fn rx(cfg: Config, rx: &mut mpsc::Receiver<String>) {
+pub async fn rx(cfg: &Config, rx: &mut mpsc::Receiver<String>) {
     while let Some(message) = rx.recv().await {
         send(&cfg, &message).await;
     }
 }
 
-pub async fn tx(cfg: Config, tx: mpsc::Sender<String>) -> Result<()> {
+pub async fn tx(cfg: &Config, tx: mpsc::Sender<String>) -> Result<()> {
     let mut log_watcher = LogWatcher::new(cfg.factorio_log_file.clone());
 
     let handle = log_watcher.spawn(true);
-    tokio::join!(async { handle.await.unwrap() }, async {
+    tokio::join!(async { handle.await.expect("Can't await handle") }, async {
         while let Some(data) = log_watcher.read_message().await {
             for line in std::str::from_utf8(&data).unwrap().split('\n') {
                 if let Some(message) = read_log(line) {

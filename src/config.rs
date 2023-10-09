@@ -2,7 +2,7 @@ use clap::Parser;
 use dotenv::dotenv;
 
 /// Factorio-Telegram bridge
-#[derive(Parser, Clone)]
+#[derive(Parser)]
 pub struct Config {
     /// Telegram bot token
     #[arg(short = 't', long, env)]

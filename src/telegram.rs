@@ -1,11 +1,12 @@
 use crate::config::Config;
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use std::sync::Arc;
 use teloxide::prelude::*;
 use tokio::sync::{mpsc, Mutex};
+use tracing::{error, info};
 
 async fn send(cfg: &Config, message: &str) {
-    println!("[factorio] {}", message);
+    info!("[factorio] {}", message);
 
     let bot = teloxide::Bot::new(cfg.telegram_token.clone());
     let err = bot
@@ -13,17 +14,17 @@ async fn send(cfg: &Config, message: &str) {
         .await;
 
     if let Err(e) = err {
-        println!("Error sending message: {}", e);
+        error!("Error sending message: {}", e);
     }
 }
 
-pub async fn rx(cfg: Config, rx: &mut mpsc::Receiver<String>) {
+pub async fn rx(cfg: &Config, rx: &mut mpsc::Receiver<String>) {
     while let Some(message) = rx.recv().await {
         send(&cfg, &message).await;
     }
 }
 
-pub async fn tx(cfg: Config, tx: mpsc::Sender<String>) -> Result<()> {
+pub async fn tx(cfg: &Config, tx: mpsc::Sender<String>) -> Result<()> {
     let bot = teloxide::Bot::new(cfg.telegram_token.clone());
     let tx = Arc::new(Mutex::new(tx.clone()));
 

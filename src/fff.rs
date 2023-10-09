@@ -1,10 +1,11 @@
 use feed_rs::parser;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration};
+use tracing::error;
 
 use crate::config::Config;
 
-pub async fn feed(cfg: Config, txs: Vec<mpsc::Sender<String>>) {
+pub async fn feed(cfg: &Config, txs: Vec<mpsc::Sender<String>>) {
     if cfg.fff.is_none() {
         return;
     }
@@ -20,7 +21,9 @@ pub async fn feed(cfg: Config, txs: Vec<mpsc::Sender<String>>) {
             continue;
         };
 
-        let Ok(feed) = parser::parse_with_uri(xml.as_ref(), Some("https://www.factorio.com/blog/rss")) else {
+        let Ok(feed) =
+            parser::parse_with_uri(xml.as_ref(), Some("https://www.factorio.com/blog/rss"))
+        else {
             continue;
         };
 
@@ -36,7 +39,7 @@ pub async fn feed(cfg: Config, txs: Vec<mpsc::Sender<String>>) {
         if last_title != title.content {
             match std::fs::write(fff_cache_file, title.content.clone()) {
                 Ok(_) => {}
-                Err(e) => println!("Error writing to file: {}", e),
+                Err(e) => error!("Error writing to file: {}", e),
             }
 
             for tx in txs.iter() {
