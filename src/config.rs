@@ -13,11 +13,11 @@ pub struct Config {
     pub telegram_chat_id: i64,
 
     /// Factorio RCON host
-    #[arg(short = 'h', long, env, default_value = "localhost:27015")]
+    #[arg(short = 'H', long, env, default_value = "localhost:27015")]
     pub factorio_rcon_host: String,
 
     /// Factorio RCON password
-    #[arg(short = 'p', long, env)]
+    #[arg(short = 'P', long, env)]
     pub factorio_rcon_password: String,
 
     /// Factorio console log file
