@@ -347,6 +347,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "cracktorio-bot"
+version = "1.0.0"
+dependencies = [
+ "async-log-watcher",
+ "clap",
+ "color-eyre",
+ "dotenv",
+ "feed-rs",
+ "futures",
+ "k8s-openapi",
+ "kube",
+ "rcon",
+ "reqwest",
+ "savefile",
+ "savefile-derive",
+ "scraper",
+ "teloxide",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "crypto-common"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -547,29 +570,6 @@ checksum = "4c2b6b5a29c02cdc822728b7d7b8ae1bab3e3b05d44522770ddd49722eeac7eb"
 dependencies = [
  "indenter",
  "once_cell",
-]
-
-[[package]]
-name = "factorio-telegram-rcon-bridge"
-version = "0.1.0"
-dependencies = [
- "async-log-watcher",
- "clap",
- "color-eyre",
- "dotenv",
- "feed-rs",
- "futures",
- "k8s-openapi",
- "kube",
- "rcon",
- "reqwest",
- "savefile",
- "savefile-derive",
- "scraper",
- "teloxide",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
