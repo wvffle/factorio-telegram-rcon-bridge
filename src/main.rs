@@ -5,7 +5,7 @@ mod tasks;
 
 use color_eyre::eyre::Result;
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::info;
 
 pub enum Signal {
     MessageFromFactorio { username: String, message: String },
