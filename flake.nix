@@ -5,13 +5,10 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     flake-utils.url = "github:numtide/flake-utils";
-    flake-utils.inputs.nixpkgs.follows = "nixpkgs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
 
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
-
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs@{ flake-parts, nixpkgs, ... }:
@@ -23,6 +20,7 @@
         devenv.shells.default = {
           dotenv.disableHint = true;
           languages.rust.enable = true;
+          packages = with pkgs; [ openssl ];
         };
       };
     };

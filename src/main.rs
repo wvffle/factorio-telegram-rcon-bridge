@@ -1,47 +1,77 @@
-#![feature(lazy_cell)]
-
-use std::sync::LazyLock;
-
 mod config;
-mod factorio;
-mod fff;
-mod telegram;
+mod log_reader;
+mod state;
+mod tasks;
 
 use color_eyre::eyre::Result;
-use config::Config;
 use tokio::sync::mpsc;
-use tracing::info;
+use tracing::{error, info};
 
-static CONFIG: LazyLock<Config> = LazyLock::new(|| Config::new());
+pub enum Signal {
+    MessageFromFactorio { username: String, message: String },
+    MessageFromTelegram { username: String, message: String },
+    FffUpdate { title: String, link: String },
+    VersionUpdate(String),
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
     tracing_subscriber::fmt::init();
 
-    let (telegram_tx, mut telegram_rx) = mpsc::channel::<String>(1);
-    let (factorio_tx, mut factorio_rx) = mpsc::channel::<String>(1);
+    let (tx, rx) = mpsc::channel::<Signal>(1);
 
-    tokio::task::spawn(fff::feed(
-        &*CONFIG,
-        vec![telegram_tx.clone(), factorio_tx.clone()],
-    ));
+    let scrapper = tasks::scrapper::run(tx.clone());
+    let factorio = tasks::factorio::run(tx.clone());
+    let telegram = tasks::telegram::run(tx.clone());
 
     tokio::select! {
         _ = tokio::signal::ctrl_c() => { info!("Shutting down..."); },
-        _ = tokio::spawn(factorio::tx(&*CONFIG, telegram_tx.clone())) => {
+        result = tokio::spawn(scrapper) => {
+            info!("Scrapper task finished");
+            result?;
+        },
+
+        result = tokio::spawn(factorio) => {
             info!("Factorio tx task finished");
+            result??;
         },
-        _ = tokio::spawn(telegram::tx(&*CONFIG, factorio_tx.clone())) => {
+        result = tokio::spawn(telegram) => {
             info!("Telegram tx task finished");
+            result??;
         },
-        _ = factorio::rx(&*CONFIG, &mut factorio_rx) => {
-            info!("Factorio rx task finished");
-        },
-        _ = telegram::rx(&*CONFIG, &mut telegram_rx) => {
-            info!("Telegram rx task finished");
+        result = tokio::spawn(bridge(rx)) => {
+            info!("Receiver task finished");
+            result?;
         },
     }
 
     Ok(())
+}
+
+async fn bridge(mut rx: mpsc::Receiver<Signal>) {
+    loop {
+        match rx.recv().await.unwrap() {
+            Signal::MessageFromFactorio { username, message } => {
+                tasks::telegram::send(&format!("{}: {}", username, message)).await;
+            }
+
+            Signal::MessageFromTelegram { username, message } => {
+                tasks::factorio::send(&format!("{}: {}", username, message)).await;
+            }
+
+            Signal::FffUpdate { title, link } => {
+                tasks::telegram::send(&format!("{}\n\n{}", title, link)).await;
+                tasks::factorio::send(&format!("FFF: {}", title)).await;
+            }
+
+            Signal::VersionUpdate(version) => {
+                tasks::telegram::send(&format!(
+                    "Factorio {} is released! @wvffle update the server.",
+                    version
+                ))
+                .await;
+            }
+        }
+    }
 }
