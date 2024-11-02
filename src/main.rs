@@ -5,7 +5,7 @@ mod tasks;
 
 use color_eyre::eyre::Result;
 use tokio::sync::mpsc;
-use tracing::info;
+use tracing::{error, info};
 
 pub enum Signal {
     MessageFromFactorio { username: String, message: String },
@@ -28,21 +28,34 @@ async fn main() -> Result<()> {
     tokio::select! {
         _ = tokio::signal::ctrl_c() => { info!("Shutting down..."); },
         result = tokio::spawn(scrapper) => {
-            info!("Scrapper task finished");
-            result?;
+            if let Err(e) = result {
+                error!("Scrapper task failed: {}", e);
+            } else {
+                info!("Scrapper task finished");
+            }
+
         },
 
         result = tokio::spawn(factorio) => {
-            info!("Factorio tx task finished");
-            result??;
+            if let Err(e) = result {
+                error!("Factorio log reading task failed: {}", e);
+            } else {
+                info!("Factorio log reading task finished");
+            }
         },
         result = tokio::spawn(telegram) => {
-            info!("Telegram tx task finished");
-            result??;
+            if let Err(e) = result {
+                error!("Telegram message receiving task failed: {}", e);
+            } else {
+                info!("Telegram message receiving task finished");
+            }
         },
         result = tokio::spawn(bridge(rx)) => {
-            info!("Receiver task finished");
-            result?;
+            if let Err(e) = result {
+                error!("Bridge task failed: {}", e);
+            } else {
+                info!("Bridge task finished");
+            }
         },
     }
 
