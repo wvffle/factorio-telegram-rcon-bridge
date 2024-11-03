@@ -28,33 +28,50 @@ async fn main() -> Result<()> {
     tokio::select! {
         _ = tokio::signal::ctrl_c() => { info!("Shutting down..."); },
         result = tokio::spawn(scrapper) => {
-            if let Err(e) = result {
-                error!("Scrapper task failed: {}", e);
-            } else {
-                info!("Scrapper task finished");
+            match result {
+                Err(e) => {
+                    error!("Scrapper task failed: {}", e);
+                }
+                Ok(()) => {
+                    info!("Scrapper task finished");
+                }
             }
-
         },
 
         result = tokio::spawn(factorio) => {
-            if let Err(e) = result {
-                error!("Factorio log reading task failed: {}", e);
-            } else {
-                info!("Factorio log reading task finished");
+            match result {
+                Err(e) => {
+                    error!("Factorio log reading task failed: {}", e);
+                }
+                Ok(Err(e)) => {
+                    error!("Factorio log reading task failed: {}", e);
+                }
+                Ok(Ok(())) => {
+                    info!("Factorio log reading task finished");
+                }
             }
         },
         result = tokio::spawn(telegram) => {
-            if let Err(e) = result {
-                error!("Telegram message receiving task failed: {}", e);
-            } else {
-                info!("Telegram message receiving task finished");
+            match result {
+                Err(e) => {
+                    error!("Telegram message receiving task failed: {}", e);
+                }
+                Ok(Err(e)) => {
+                    error!("Telegram message receiving task failed: {}", e);
+                }
+                Ok(Ok(())) => {
+                    info!("Telegram message receiving task finished");
+                }
             }
         },
         result = tokio::spawn(bridge(rx)) => {
-            if let Err(e) = result {
-                error!("Bridge task failed: {}", e);
-            } else {
-                info!("Bridge task finished");
+            match result {
+                Err(e) => {
+                    error!("Bridge task failed: {}", e);
+                }
+                Ok(()) => {
+                    info!("Bridge task finished");
+                }
             }
         },
     }
