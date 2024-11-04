@@ -8,13 +8,13 @@ use tokio::sync::mpsc;
 use tracing::{error, info};
 
 pub async fn run(tx: mpsc::Sender<Signal>) -> Result<()> {
-    if CONFIG.retry {
-        loop {
-            if let Err(e) = create_reader(&tx).await {
-                error!("Error reading log file: {}", e);
-            }
-        }
-    }
+    // if CONFIG.retry {
+    //     loop {
+    //         if let Err(e) = create_reader(&tx).await {
+    //             error!("Error reading log file: {}", e);
+    //         }
+    //     }
+    // }
 
     create_reader(&tx).await?;
 

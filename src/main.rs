@@ -19,6 +19,8 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
     tracing_subscriber::fmt::init();
 
+    info!("Cracktorio bot started");
+
     let (tx, rx) = mpsc::channel::<Signal>(1);
 
     let scrapper = tasks::scrapper::run(tx.clone());
@@ -28,51 +30,21 @@ async fn main() -> Result<()> {
     tokio::select! {
         _ = tokio::signal::ctrl_c() => { info!("Shutting down..."); },
         result = tokio::spawn(scrapper) => {
-            match result {
-                Err(e) => {
-                    error!("Scrapper task failed: {}", e);
-                }
-                Ok(()) => {
-                    info!("Scrapper task finished");
-                }
-            }
+            info!("Scrapper task finished");
+            result?;
         },
 
         result = tokio::spawn(factorio) => {
-            match result {
-                Err(e) => {
-                    error!("Factorio log reading task failed: {}", e);
-                }
-                Ok(Err(e)) => {
-                    error!("Factorio log reading task failed: {}", e);
-                }
-                Ok(Ok(())) => {
-                    info!("Factorio log reading task finished");
-                }
-            }
+            info!("Factorio log reading task finished");
+            result??;
         },
         result = tokio::spawn(telegram) => {
-            match result {
-                Err(e) => {
-                    error!("Telegram message receiving task failed: {}", e);
-                }
-                Ok(Err(e)) => {
-                    error!("Telegram message receiving task failed: {}", e);
-                }
-                Ok(Ok(())) => {
-                    info!("Telegram message receiving task finished");
-                }
-            }
+            info!("Telegram message receiving task finished");
+            result??;
         },
         result = tokio::spawn(bridge(rx)) => {
-            match result {
-                Err(e) => {
-                    error!("Bridge task failed: {}", e);
-                }
-                Ok(()) => {
-                    info!("Bridge task finished");
-                }
-            }
+            info!("Bridge task finished");
+            result?;
         },
     }
 
