@@ -8,6 +8,7 @@ use kube::{
     api::{ListParams, LogParams},
     Api, Client, ResourceExt,
 };
+use tracing::{error, info};
 
 use crate::config::CONFIG;
 
@@ -69,27 +70,38 @@ where
         ListParams::default()
     };
 
-    let list = pods.list(&lp).await?;
+    'restart_reader: loop {
+        info!("Searching for pods to watch log:");
+        let list = pods.list(&lp).await?;
 
-    for pod in list.iter() {
-        println!("{}", pod.name_any());
+        for pod in list.iter() {
+            info!("Found pod: {}", pod.name_any());
+        }
+
+        let Some(pod) = list.iter().next() else {
+            panic!("No pods found");
+        };
+
+        let lp = LogParams {
+            follow: true,
+            tail_lines: Some(0),
+            ..Default::default()
+        };
+
+        let mut logs = pods.log_stream(&pod.name_any(), &lp).await?.lines();
+        loop {
+            match logs.try_next().await {
+                Err(e) => {
+                    error!("Error reading log: {}", e);
+                    continue 'restart_reader;
+                }
+
+                Ok(Some(line)) => {
+                    line_reader(line).await;
+                }
+
+                Ok(None) => {}
+            }
+        }
     }
-
-    let Some(pod) = list.iter().next() else {
-        panic!("No pods found");
-    };
-
-    let lp = LogParams {
-        follow: true,
-        tail_lines: Some(0),
-        ..Default::default()
-    };
-
-    let mut logs = pods.log_stream(&pod.name_any(), &lp).await?.lines();
-
-    while let Some(line) = logs.try_next().await? {
-        line_reader(line).await;
-    }
-
-    Ok(())
 }
