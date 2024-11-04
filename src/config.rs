@@ -46,6 +46,10 @@ pub struct Config {
     /// If set, the bridge will check for new Factorio Friday Facts and send them to the chat.
     #[arg(long, env = "FACTORIO_FRIDAY_FACTS")]
     pub fff: bool,
+
+    /// Retry connection if app crashed or server is down
+    #[arg(short = 'r', long, env)]
+    pub retry: bool,
 }
 
 impl Config {

@@ -8,6 +8,20 @@ use tokio::sync::mpsc;
 use tracing::{error, info};
 
 pub async fn run(tx: mpsc::Sender<Signal>) -> Result<()> {
+    if CONFIG.retry {
+        loop {
+            if let Err(e) = create_reader(&tx).await {
+                error!("Error reading log file: {}", e);
+            }
+        }
+    }
+
+    create_reader(&tx).await?;
+
+    Ok(())
+}
+
+async fn create_reader(tx: &mpsc::Sender<Signal>) -> Result<()> {
     crate::log_reader::read_log(|line| async {
         if let Some((username, message)) = parse_log_line(line) {
             tx.send(Signal::MessageFromFactorio { username, message })
@@ -15,9 +29,7 @@ pub async fn run(tx: mpsc::Sender<Signal>) -> Result<()> {
                 .unwrap();
         }
     })
-    .await?;
-
-    Ok(())
+    .await
 }
 
 pub async fn send(message: &str) {
